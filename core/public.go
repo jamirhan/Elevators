@@ -20,18 +20,17 @@ type Response struct {
 	Open      bool
 }
 
-type StateBase[T any] interface {
-	GetResponse(Floor) Response
-	NewFloor(Floor)
-	NewCall(Floor, T)
+type StateBase interface {
+	FloorReachedResponse(Floor) (Response, StateBase)
 }
 
-type Controller[T any] interface {
-	MakeDecision([]StateBase[T], []Floor, Floor, T) (bool, int)
+type Controller interface {
+	NewCall([]StateBase, []Floor, Floor, int) (int, StateBase)
+	CabinFloorCall(StateBase, Floor) StateBase
+	IntentionToPanelState(Floor, Floor) int
 }
 
-type NewPassangerQuery[T any] struct {
-	PanelState    T
+type NewPassangerQuery struct {
 	CurrentFloor  Floor
 	DestinedFloor Floor
 	StatusChan    chan PassangerStatus

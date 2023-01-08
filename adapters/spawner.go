@@ -2,6 +2,7 @@ package adapters
 
 import (
 	"elevators/core"
+	"fmt"
 	"time"
 )
 
@@ -20,10 +21,24 @@ type Statistics struct {
 	Status   Status
 }
 
-func runQuery[T any](from core.Floor, to core.Floor, pChan chan core.NewPassangerQuery[T], panel T, cancelChan chan bool, statsChan chan Statistics, isOver chan int, id int) {
+func (stats Statistics) String() string {
+	var status string
+	switch stats.Status {
+	case Arrived:
+		status = "Arrived"
+	case WaitingElevator:
+		status = "WaitingElevator"
+	case WaitingFloor:
+		status = "WaitingFloor"
+	default:
+		status = fmt.Sprint(stats.Status)
+	}
+	return fmt.Sprint("Statistics(from:", stats.From, " to:", stats.To, " duration:", stats.Duration, " status:", status,")")
+}
+
+func runQuery(from core.Floor, to core.Floor, pChan chan core.NewPassangerQuery, cancelChan chan bool, statsChan chan Statistics, isOver chan int, id int) {
 	statusCh := make(chan core.PassangerStatus)
-	query := core.NewPassangerQuery[T]{
-		PanelState:    panel,
+	query := core.NewPassangerQuery {
 		CurrentFloor:  from,
 		DestinedFloor: to,
 		StatusChan:    statusCh,
@@ -56,17 +71,17 @@ L:
 	}
 }
 
-type Spawner[T any] struct {
+type Spawner struct {
 	cancelHook chan bool
 	rolling    map[int]chan bool
 	isOver     chan int
-	pChan      chan core.NewPassangerQuery[T]
+	pChan      chan core.NewPassangerQuery
 	statsChan  chan Statistics
 	curId      int
 }
 
-func CreateSpawner[T any](pChan chan core.NewPassangerQuery[T]) *Spawner[T] {
-	spawner := Spawner[T]{
+func CreateSpawner(pChan chan core.NewPassangerQuery) *Spawner {
+	spawner := Spawner{
 		cancelHook: make(chan bool),
 		rolling:    make(map[int]chan bool),
 		isOver:     make(chan int),
@@ -76,15 +91,15 @@ func CreateSpawner[T any](pChan chan core.NewPassangerQuery[T]) *Spawner[T] {
 	return &spawner
 }
 
-func (spawner *Spawner[T]) Stop() {
+func (spawner *Spawner) Stop() {
 	spawner.cancelHook <- true
 }
 
-func (spawner *Spawner[T]) Stats() chan Statistics {
+func (spawner *Spawner) Stats() chan Statistics {
 	return spawner.statsChan
 }
 
-func (spawner *Spawner[T]) Run() {
+func (spawner *Spawner) Run() {
 L:
 	for {
 		select {
@@ -101,12 +116,11 @@ L:
 		id := <-spawner.isOver
 		delete(spawner.rolling, id)
 	}
-	close(spawner.statsChan)
 }
 
-func (spawner *Spawner[T]) Spawn(from core.Floor, to core.Floor, panel T) {
+func (spawner *Spawner) Spawn(from core.Floor, to core.Floor) {
 	cancel := make(chan bool)
 	spawner.rolling[spawner.curId] = cancel
+	go runQuery(from, to, spawner.pChan, cancel, spawner.statsChan, spawner.isOver, spawner.curId)
 	spawner.curId++
-	go runQuery(from, to, spawner.pChan, panel, cancel, spawner.statsChan, spawner.isOver, spawner.curId)
 }

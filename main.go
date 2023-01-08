@@ -2,36 +2,153 @@ package main
 
 import (
 	"elevators/adapters"
-	"elevators/adapters/generators"
 	"elevators/core"
+	"elevators/generators"
 	"elevators/models/controllers"
-	"elevators/models/panels"
 	"elevators/models/states"
 	"fmt"
 	"time"
+	// "math/rand"
 )
 
-func main() {
-	newP := make(chan core.NewPassangerQuery[panels.OneButton])
-	hall := core.CreateHall[panels.OneButton](1, states.DefaultSimpleQueue[panels.OneButton](), newP, controllers.ConstantDecision[panels.OneButton](0))
+func manualGeneratorExample() {
+	newP := make(chan core.NewPassangerQuery)
+	controller := controllers.Constant[states.SimpleQueue]{
+		Index:    0,
+		NewFloor: states.PushBack,
+	}
+	hall := core.CreateHall(1, states.DefaultSimpleQueue(), newP, &controller)
 	go hall.Routine()
 	spawner := adapters.CreateSpawner(newP)
 	go spawner.Run()
-	generator := generators.CreateManual(panels.ToPanel)
-	hook := spawner.AddAsyncGenerator(&generator, 1 * time.Second)
-
-	generator.Push(1, 2)
-	generator.Push(2, 4)
-	generator.Push(3, 5)
+	generator := generators.CreateManual()
+	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
+	go generator.Run()
 
 	i := 0
 	for stats := range spawner.Stats() {
 		fmt.Println(stats)
 		i++
-		if i >= 10 {
-			break
+		if i == 10 {
+			time.Sleep(10 * time.Second)
+			spawner.Stop()
 		}
 	}
 	hook()
-	spawner.Stop()
+}
+
+func randomGeneratorExample() {
+	newP := make(chan core.NewPassangerQuery)
+	controller := controllers.Constant[states.SimpleQueue]{
+		Index:    0,
+		NewFloor: states.PushBack,
+	}
+	hall := core.CreateHall(1, states.DefaultSimpleQueue(), newP, &controller)
+	go hall.Routine()
+	spawner := adapters.CreateSpawner(newP)
+	go spawner.Run()
+	generator := generators.Random {
+		MaxFloors: 10,
+		Seed: 1,
+	}
+	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
+
+	sum := float32(0)
+	num := 0
+	betweenFloors := core.MsPerTick * core.TicksBetweenFloors
+	for stats := range spawner.Stats() {
+		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
+		num++
+		fmt.Println(stats)
+		fmt.Println("Current elevator points:", float32(num) / sum)
+	}
+	hook()
+}
+
+func leastControllerExample() {
+	newP := make(chan core.NewPassangerQuery)
+	controller := controllers.Least{}
+	hall := core.CreateHall(4, states.DefaultSimpleQueue(), newP, &controller)
+	go hall.Routine()
+	spawner := adapters.CreateSpawner(newP)
+	go spawner.Run()
+	generator := generators.Random {
+		MaxFloors: 10,
+		Seed: 1,
+	}
+	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
+
+	sum := float32(0)
+	num := 0
+	betweenFloors := core.MsPerTick * core.TicksBetweenFloors
+	for stats := range spawner.Stats() {
+		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
+		num++
+		fmt.Println(stats)
+		fmt.Println("Current elevator points:", float32(num) / sum)
+	}
+	hook()
+}
+
+func randomControllerExample() {
+	newP := make(chan core.NewPassangerQuery)
+	controller := controllers.Random{
+		MaxFloors: 10,
+	}
+	hall := core.CreateHall(4, states.DefaultSimpleQueue(), newP, &controller)
+	go hall.Routine()
+	spawner := adapters.CreateSpawner(newP)
+	go spawner.Run()
+	generator := generators.Random {
+		MaxFloors: 10,
+		Seed: 1,
+	}
+	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
+
+	sum := float32(0)
+	num := 0
+	betweenFloors := core.MsPerTick * core.TicksBetweenFloors
+	for stats := range spawner.Stats() {
+		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
+		num++
+		fmt.Println(stats)
+		fmt.Println("Current elevator points:", float32(num) / sum)
+	}
+	hook()
+}
+
+func nonStopExample() {
+	newP := make(chan core.NewPassangerQuery)
+	controller := controllers.Constant[states.NonStop]{
+		Index:    0,
+		NewFloor: func(state states.NonStop, floor core.Floor) states.NonStop{
+			return state
+		},
+	}
+	hall := core.CreateHall(4, states.NonStop{
+		MaxFloors: 10,
+	}, newP, &controller)
+	go hall.Routine()
+	spawner := adapters.CreateSpawner(newP)
+	go spawner.Run()
+	generator := generators.Random {
+		MaxFloors: 10,
+		Seed: 1,
+	}
+	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
+
+	sum := float32(0)
+	num := 0
+	betweenFloors := core.MsPerTick * core.TicksBetweenFloors
+	for stats := range spawner.Stats() {
+		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
+		num++
+		fmt.Println(stats)
+		fmt.Println("Current elevator points:", float32(num) / sum)
+	}
+	hook()
+}
+
+func main() {
+	nonStopExample()
 }

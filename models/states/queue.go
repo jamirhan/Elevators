@@ -4,31 +4,32 @@ import (
 	"elevators/core"
 )
 
-type SimpleQueue[T any] []core.Floor
 
-func (state *SimpleQueue[T]) GetResponse(floor core.Floor) core.Response {
-	if len(*state) == 0 {
+type SimpleQueue []core.Floor
+
+func (state SimpleQueue) FloorReachedResponse(floor core.Floor) (core.Response, core.StateBase) {
+	if len(state) == 0 {
 		return core.Response{
 			Direction: core.Stay,
 			Open:      false,
-		}
+		}, state
 	}
 	var dir core.Direction
 	var open bool
 
-	if floor == (*state)[0] {
+	if floor == state[0] {
 		open = true
-		*state = (*state)[1:]
+		state = (state)[1:]
 	}
 
-	if len(*state) == 0 {
+	if len(state) == 0 {
 		dir = core.Stay
 	} else {
-		if (*state)[0] > floor {
+		if (state)[0] > floor {
 			dir = core.Up
 		}
 
-		if (*state)[0] < floor {
+		if (state)[0] < floor {
 			dir = core.Down
 		}
 	}
@@ -36,19 +37,24 @@ func (state *SimpleQueue[T]) GetResponse(floor core.Floor) core.Response {
 	return core.Response{
 		Direction: dir,
 		Open:      open,
-	}
+	}, state
 
 }
 
-func (state *SimpleQueue[T]) NewFloor(floor core.Floor) {
-	*state = append(*state, floor)
+func DefaultSimpleQueue() SimpleQueue {
+	return make(SimpleQueue, 0)
 }
 
-func (state *SimpleQueue[T]) NewCall(floor core.Floor, panel T) {
-	*state = append(*state, floor)
+func InsertBefore(queue SimpleQueue, index int, el core.Floor) (SimpleQueue) {
+	res := queue[:index]
+	res = append(res, el)
+	return append(res, queue[index:]...)
 }
 
-func DefaultSimpleQueue[T any]() *SimpleQueue[T] {
-	var queue SimpleQueue[T]
-	return &queue
+func PushBack(queue SimpleQueue, el core.Floor) SimpleQueue {
+	return InsertBefore(queue, len(queue), el)
+}
+
+func PushFront(queue SimpleQueue, el core.Floor) SimpleQueue {
+	return InsertBefore(queue, 0, el)
 }

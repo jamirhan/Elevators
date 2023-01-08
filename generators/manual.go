@@ -2,7 +2,6 @@ package generators
 
 import (
 	"elevators/core"
-	"fmt"
 )
 
 type Query struct {
@@ -10,17 +9,15 @@ type Query struct {
 	to core.Floor
 }
 
-type Manual[T any] struct {
-	toPanel func(core.Floor, core.Floor) T
+type Manual struct {
 	current []Query
 	requestValue chan bool
 	newValue chan Query
 	generatedValue chan Query
 }
 
-func CreateManual[T any](toPanel func(core.Floor, core.Floor) T) Manual[T] {
-	return Manual[T] {
-		toPanel: toPanel,
+func CreateManual() Manual {
+	return Manual {
 		current: make([]Query, 0),
 		requestValue: make(chan bool),
 		newValue: make(chan Query),
@@ -28,7 +25,7 @@ func CreateManual[T any](toPanel func(core.Floor, core.Floor) T) Manual[T] {
 	}
 }
 
-func (generator *Manual[T]) Run() {
+func (generator *Manual) Run() {
 	waiting := 0
 	for {
 		select {
@@ -46,14 +43,12 @@ func (generator *Manual[T]) Run() {
 	}
 }
 
-func (generator *Manual[T]) Generate() (core.Floor, core.Floor, T) {
-	fmt.Println("generate()")
+func (generator *Manual) Generate() (core.Floor, core.Floor) {
 	generator.requestValue <- true
 	resp := <-generator.generatedValue
-	fmt.Println("got value")
-	return resp.from, resp.to, generator.toPanel(resp.from, resp.to)
+	return resp.from, resp.to
 }
 
-func (generator Manual[T]) Push(from core.Floor, to core.Floor) {
+func (generator Manual) Push(from core.Floor, to core.Floor) {
 	generator.newValue <- Query{from, to}
 }

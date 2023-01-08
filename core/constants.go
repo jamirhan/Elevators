@@ -1,4 +1,4 @@
 package core
 
-const ticksBetweenFloors = 4
-const msPerTick = 100
+const TicksBetweenFloors = 4
+const MsPerTick = 100

@@ -4,30 +4,30 @@ import (
 	"sync"
 )
 
-type state[T any] struct {
-	state        StateBase[T]
+type state struct {
+	state        StateBase
 	stateMut     sync.Mutex
 	curFloor     Floor
 	curDirection Direction
 }
 
-func (state *state[T]) initialize(base StateBase[T]) {
+func (state *state) initialize(base StateBase) {
 	state.state = base
 	state.curFloor = 1
 	state.curDirection = Stay
 }
 
-type elevator[T any] struct {
+type elevator struct {
 	stateChanged    chan bool
 	floorReached    chan ElevatorArrivedT
-	curState        *state[T]
+	curState        *state
 	interFloorTicks int
 	tickChan        chan bool
 	elInd           int
 }
 
-func startElevator[T any](stateChanged chan bool, floorReached chan ElevatorArrivedT, tickChan chan bool, initState *state[T], ind int) {
-	lift := elevator[T]{
+func startElevator(stateChanged chan bool, floorReached chan ElevatorArrivedT, tickChan chan bool, initState *state, ind int) {
+	lift := elevator {
 		stateChanged: stateChanged,
 		tickChan:     tickChan,
 		floorReached: floorReached,
@@ -37,13 +37,13 @@ func startElevator[T any](stateChanged chan bool, floorReached chan ElevatorArri
 	go lift.elevatorRoutine()
 }
 
-func (lift *elevator[T]) elevatorRoutine() {
+func (lift *elevator) elevatorRoutine() {
 	for {
 		lift.elevatorIteration()
 	}
 }
 
-func (lift *elevator[T]) elevatorIteration() {
+func (lift *elevator) elevatorIteration() {
 	select {
 	case <-lift.tickChan:
 
@@ -53,14 +53,15 @@ func (lift *elevator[T]) elevatorIteration() {
 		if lift.curState.curDirection == Stay {
 			return
 		}
-		if lift.interFloorTicks == ticksBetweenFloors {
+		if lift.interFloorTicks == TicksBetweenFloors {
 			lift.interFloorTicks = 0
 			if lift.curState.curDirection == Up {
 				lift.curState.curFloor++
 			} else {
 				lift.curState.curFloor--
 			}
-			resp := lift.curState.state.GetResponse(lift.curState.curFloor)
+			resp, new_state := lift.curState.state.FloorReachedResponse(lift.curState.curFloor)
+			lift.curState.state = new_state
 			lift.curState.curDirection = resp.Direction
 			if resp.Open {
 				arrived := ElevatorArrivedT{Floor: lift.curState.curFloor, ElevatorInd: lift.elInd}
@@ -72,9 +73,9 @@ func (lift *elevator[T]) elevatorIteration() {
 	case <-lift.stateChanged:
 		lift.curState.stateMut.Lock()
 		defer lift.curState.stateMut.Unlock()
-
 		if lift.curState.curDirection == Stay {
-			resp := lift.curState.state.GetResponse(lift.curState.curFloor)
+			resp, new_state := lift.curState.state.FloorReachedResponse(lift.curState.curFloor)
+			lift.curState.state = new_state
 			lift.curState.curDirection = resp.Direction
 			if resp.Open {
 				arrived := ElevatorArrivedT{Floor: lift.curState.curFloor, ElevatorInd: lift.elInd}
