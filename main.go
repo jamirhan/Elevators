@@ -8,7 +8,6 @@ import (
 	"elevators/models/states"
 	"fmt"
 	"time"
-	// "math/rand"
 )
 
 func manualGeneratorExample() {
@@ -47,9 +46,9 @@ func randomGeneratorExample() {
 	go hall.Routine()
 	spawner := adapters.CreateSpawner(newP)
 	go spawner.Run()
-	generator := generators.Random {
+	generator := generators.Random{
 		MaxFloors: 10,
-		Seed: 1,
+		Seed:      1,
 	}
 	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
 
@@ -60,7 +59,7 @@ func randomGeneratorExample() {
 		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
 		num++
 		fmt.Println(stats)
-		fmt.Println("Current elevator points:", float32(num) / sum)
+		fmt.Println("Current elevator points:", float32(num)/sum)
 	}
 	hook()
 }
@@ -72,9 +71,9 @@ func leastControllerExample() {
 	go hall.Routine()
 	spawner := adapters.CreateSpawner(newP)
 	go spawner.Run()
-	generator := generators.Random {
+	generator := generators.Random{
 		MaxFloors: 10,
-		Seed: 1,
+		Seed:      1,
 	}
 	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
 
@@ -85,7 +84,7 @@ func leastControllerExample() {
 		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
 		num++
 		fmt.Println(stats)
-		fmt.Println("Current elevator points:", float32(num) / sum)
+		fmt.Println("Current elevator points:", float32(num)/sum)
 	}
 	hook()
 }
@@ -99,9 +98,9 @@ func randomControllerExample() {
 	go hall.Routine()
 	spawner := adapters.CreateSpawner(newP)
 	go spawner.Run()
-	generator := generators.Random {
+	generator := generators.Random{
 		MaxFloors: 10,
-		Seed: 1,
+		Seed:      1,
 	}
 	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
 
@@ -112,7 +111,7 @@ func randomControllerExample() {
 		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
 		num++
 		fmt.Println(stats)
-		fmt.Println("Current elevator points:", float32(num) / sum)
+		fmt.Println("Current elevator points:", float32(num)/sum)
 	}
 	hook()
 }
@@ -120,8 +119,8 @@ func randomControllerExample() {
 func nonStopExample() {
 	newP := make(chan core.NewPassangerQuery)
 	controller := controllers.Constant[states.NonStop]{
-		Index:    0,
-		NewFloor: func(state states.NonStop, floor core.Floor) states.NonStop{
+		Index: 0,
+		NewFloor: func(state states.NonStop, floor core.Floor) states.NonStop {
 			return state
 		},
 	}
@@ -131,9 +130,9 @@ func nonStopExample() {
 	go hall.Routine()
 	spawner := adapters.CreateSpawner(newP)
 	go spawner.Run()
-	generator := generators.Random {
+	generator := generators.Random{
 		MaxFloors: 10,
-		Seed: 1,
+		Seed:      1,
 	}
 	hook := spawner.AddAsyncGenerator(&generator, 1*time.Second)
 
@@ -144,7 +143,7 @@ func nonStopExample() {
 		sum += float32(stats.Duration.Milliseconds()) / float32(betweenFloors)
 		num++
 		fmt.Println(stats)
-		fmt.Println("Current elevator points:", float32(num) / sum)
+		fmt.Println("Current elevator points:", float32(num)/sum)
 	}
 	hook()
 }
